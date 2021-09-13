@@ -9,9 +9,15 @@ namespace Memorandum.UI
         public Window(IntPtr handle)
         {
             this.Handle = handle;
+
+            int processId;
+            NativeMethods.GetWindowThreadProcessId(handle, out processId);
+            this.ProcessId = processId;
         }
 
         public IntPtr Handle { get; private set; }
+
+        public int ProcessId { get; private set; }
 
         private class NativeMethods
         {
@@ -28,21 +34,29 @@ namespace Memorandum.UI
                 return rect.ToRectangle();
             }
 
-            public static Rectangle GetWindowRect(IntPtr handle)
+            public static Rectangle GetWindowBounds(IntPtr handle)
             {
                 Rect bounds;
-                /* Rect rect; */
                 NativeMethods.DwmGetWindowAttribute(handle, DwmWindowAttributes.ExtendedFrameBounds, out bounds, Marshal.SizeOf(typeof(Rect)));
-                /* NativeMethods.GetWindowRect(handle, out rect); */
                 return bounds.ToRectangle();
             }
+
+            public static Rectangle GetWindowRect(IntPtr handle)
+            {
+                Rect rect;
+                NativeMethods.GetWindowRect(handle, out rect);
+                return rect.ToRectangle();
+            }
+
+            [DllImport("user32.dll")]
+            public static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+
+            [DllImport("dwmapi.dll")]
+            private static extern int DwmGetWindowAttribute(IntPtr handle, DwmWindowAttributes attribute, out Rect rect, int size);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool GetClientRect(IntPtr handle, out Rect rect);
-
-            [DllImport("dwmApi.dll")]
-            private static extern int DwmGetWindowAttribute(IntPtr handle, DwmWindowAttributes attribute, out Rect rect, int size);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
