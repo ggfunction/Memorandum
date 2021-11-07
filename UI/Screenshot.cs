@@ -10,7 +10,24 @@ namespace Memorandum.UI
 
         public Screenshot(Rectangle bounds)
         {
-            throw new NotImplementedException();
+            var bitmap = new Bitmap(bounds.Width, bounds.Height);
+            var g = Graphics.FromImage(bitmap);
+            var dcFrom = NativeMethods.GetDC(IntPtr.Zero);
+            var dcTo = g.GetHdc();
+
+            try
+            {
+                var flags = CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt;
+                NativeMethods.BitBlt(dcTo, 0, 0, bitmap.Width, bitmap.Height, dcFrom, bounds.Left, bounds.Top, flags);
+            }
+            finally
+            {
+                NativeMethods.ReleaseDC(IntPtr.Zero, dcFrom);
+                g.ReleaseHdc(dcTo);
+                g.Dispose();
+            }
+
+            this.Image = bitmap;
         }
 
         public Screenshot(Window window)
