@@ -28,6 +28,7 @@ namespace Memorandum.UI
             }
 
             this.Image = bitmap;
+            this.Timestamp = DateTime.Now;
         }
 
         public Screenshot(Window window)
@@ -51,6 +52,7 @@ namespace Memorandum.UI
             }
 
             this.Image = bitmap;
+            this.Timestamp = DateTime.Now;
         }
 
         ~Screenshot()
@@ -59,6 +61,8 @@ namespace Memorandum.UI
         }
 
         public Bitmap Image { get; private set; }
+
+        public DateTime Timestamp { get; private set; }
 
         public void Dispose()
         {
