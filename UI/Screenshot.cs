@@ -4,7 +4,7 @@ namespace Memorandum.UI
     using System.Drawing;
     using System.Runtime.InteropServices;
 
-    public partial class Screenshot : IDisposable
+    public class Screenshot : IDisposable
     {
         private bool disposedValue;
 
@@ -33,7 +33,7 @@ namespace Memorandum.UI
 
         public Screenshot(Window window)
         {
-            var rect = new Rectangle(new Point(0, 0), window.Bounds.Size);
+            var rect = window.ClientRectangle;
             var bitmap = new Bitmap(rect.Width, rect.Height);
             var g = Graphics.FromImage(bitmap);
             var dcFrom = NativeMethods.GetDC(window.Handle);

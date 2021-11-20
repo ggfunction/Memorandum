@@ -10,7 +10,7 @@ namespace Memorandum.UI
         public Window(IntPtr handle)
         {
             this.Handle = handle;
-            this.UpDate();
+            this.Update();
         }
 
         public Rectangle Bounds { get; private set; }
@@ -56,7 +56,7 @@ namespace Memorandum.UI
             return NativeMethods.EnumWindows(window.Handle);
         }
 
-        public void UpDate()
+        public void Update()
         {
             this.Bounds = NativeMethods.GetWindowBounds(this.Handle);
             this.ClassName = NativeMethods.GetClassName(this.Handle);
