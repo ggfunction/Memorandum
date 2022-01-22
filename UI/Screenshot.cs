@@ -10,47 +10,28 @@ namespace Memorandum.UI
 
         public Screenshot(Rectangle bounds)
         {
-            var bitmap = new Bitmap(bounds.Width, bounds.Height);
-            var g = Graphics.FromImage(bitmap);
-            var dcFrom = NativeMethods.GetDC(IntPtr.Zero);
-            var dcTo = g.GetHdc();
-
-            try
-            {
-                var flags = CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt;
-                NativeMethods.BitBlt(dcTo, 0, 0, bitmap.Width, bitmap.Height, dcFrom, bounds.Left, bounds.Top, flags);
-            }
-            finally
-            {
-                NativeMethods.ReleaseDC(IntPtr.Zero, dcFrom);
-                g.ReleaseHdc(dcTo);
-                g.Dispose();
-            }
-
+            var bitmap = this.CopyFrom(IntPtr.Zero, bounds);
             this.Image = bitmap;
             this.Timestamp = DateTime.Now;
         }
 
-        public Screenshot(Window window)
+        public Screenshot(IntPtr hwnd)
         {
-            var rect = window.ClientRectangle;
-            var bitmap = new Bitmap(rect.Width, rect.Height);
-            var g = Graphics.FromImage(bitmap);
-            var dcFrom = NativeMethods.GetDC(window.Handle);
-            var dcTo = g.GetHdc();
+            var bitmap = this.CopyFrom(hwnd, Rectangle.Empty);
+            this.Image = bitmap;
+            this.Timestamp = DateTime.Now;
+        }
 
-            try
-            {
-                var flags = CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt;
-                NativeMethods.BitBlt(dcTo, 0, 0, bitmap.Width, bitmap.Height, dcFrom, rect.Left, rect.Top, flags);
-            }
-            finally
-            {
-                NativeMethods.ReleaseDC(window.Handle, dcFrom);
-                g.ReleaseHdc(dcTo);
-                g.Dispose();
-            }
+        public Screenshot(IntPtr hwnd, Rectangle bounds)
+        {
+            var bitmap = this.CopyFrom(hwnd, bounds);
+            this.Image = bitmap;
+            this.Timestamp = DateTime.Now;
+        }
 
+        public Screenshot(Window window, bool clientOnly, bool layerBlend)
+        {
+            var bitmap = this.CopyFrom(window, clientOnly, layerBlend);
             this.Image = bitmap;
             this.Timestamp = DateTime.Now;
         }
@@ -70,6 +51,103 @@ namespace Memorandum.UI
             GC.SuppressFinalize(this);
         }
 
+        protected Bitmap CopyFrom(IntPtr hwnd, Rectangle bounds)
+        {
+            var dcFrom = default(IntPtr);
+            var dcTo = default(IntPtr);
+            var bitmap = default(Bitmap);
+            var g = default(Graphics);
+
+            if (bounds == Rectangle.Empty)
+            {
+                bounds = new Window(hwnd).Bounds;
+            }
+
+            try
+            {
+                bitmap = new Bitmap(bounds.Width, bounds.Height);
+                g = Graphics.FromImage(bitmap);
+                dcFrom = NativeMethods.GetDC(hwnd);
+                dcTo = g.GetHdc();
+                var flags = CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt;
+                NativeMethods.BitBlt(dcTo, 0, 0, bitmap.Width, bitmap.Height, dcFrom, bounds.Left, bounds.Top, flags);
+            }
+            finally
+            {
+                NativeMethods.ReleaseDC(hwnd, dcFrom);
+                if (g != null)
+                {
+                    g.ReleaseHdc(dcTo);
+                    g.Dispose();
+                }
+            }
+
+            return bitmap;
+        }
+
+        protected Bitmap CopyFrom(Window w, bool clientOnly, bool layerBlend)
+        {
+            var dcFrom = default(IntPtr);
+            var dcTo = default(IntPtr);
+            var bitmap = default(Bitmap);
+            var g = default(Graphics);
+            var hwnd = default(IntPtr);
+
+            Func<IntPtr, IntPtr> getDC = NativeMethods.GetDC;
+
+            try
+            {
+                var bounds = default(Rectangle);
+                if (clientOnly)
+                {
+                    if (layerBlend)
+                    {
+                        var p = default(Point);
+                        NativeMethods.ClientToScreen(w.Handle, out p);
+                        bounds = new Rectangle(p, w.ClientRectangle.Size);
+                    }
+                    else
+                    {
+                        hwnd = w.Handle;
+                        bounds = w.ClientRectangle;
+                    }
+                }
+                else
+                {
+                    if (layerBlend)
+                    {
+                        bounds = w.Bounds;
+                    }
+                    else
+                    {
+                        hwnd = w.Handle;
+                        bounds = new Rectangle(
+                            new Point(w.Bounds.Left - w.Rectangle.Left, w.Bounds.Top - w.Rectangle.Top),
+                            w.Bounds.Size);
+                        getDC = NativeMethods.GetWindowDC;
+                    }
+                }
+
+                bitmap = new Bitmap(bounds.Width, bounds.Height);
+                g = Graphics.FromImage(bitmap);
+                dcFrom = getDC.Invoke(hwnd);
+                dcTo = g.GetHdc();
+                var flags = CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt;
+                NativeMethods.BitBlt(dcTo, 0, 0, bitmap.Width, bitmap.Height, dcFrom, bounds.Left, bounds.Top, flags);
+            }
+            finally
+            {
+                NativeMethods.ReleaseDC(hwnd, dcFrom);
+                if (g != null)
+                {
+                    g.ReleaseHdc(dcTo);
+                    g.Dispose();
+                }
+            }
+
+            return bitmap;
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!this.disposedValue)
@@ -84,6 +162,9 @@ namespace Memorandum.UI
 
         private static class NativeMethods
         {
+            [DllImport("user32.dll")]
+            public static extern bool ClientToScreen(IntPtr hwnd, out Point p);
+
             [DllImport("user32.dll")]
             public static extern IntPtr GetDC(IntPtr handle);
 
