@@ -167,6 +167,7 @@ namespace Memorandum.IO.Pipes
         }
 
         protected void Invoke<T>(EventHandler<T> handler, T e)
+            where T : EventArgs
         {
             var context = this.GetSynchronizationContext();
 
@@ -188,7 +189,7 @@ namespace Memorandum.IO.Pipes
                 if (disposing)
                 {
                     this.quitEvent.Set();
-                    this.quitEvent.Dispose();
+                    this.quitEvent.Close();
 
                     if (this.IsPrimary)
                     {
@@ -196,7 +197,7 @@ namespace Memorandum.IO.Pipes
                         this.IsPrimary = false;
                     }
 
-                    this.semaphore.Dispose();
+                    this.semaphore.Close();
                 }
 
                 this.disposedValue = true;
@@ -310,7 +311,9 @@ namespace Memorandum.IO.Pipes
 
             while (true)
             {
-                var waitHandles = requests.Prepend(this.quitEvent).ToArray();
+                var waitHandles = new WaitHandle[] { this.quitEvent }
+                    .Concat(requests)
+                    .ToArray();
                 var index = WaitHandle.WaitTimeout;
                 bool exit;
                 try
@@ -332,7 +335,7 @@ namespace Memorandum.IO.Pipes
                 try
                 {
                     requests.Remove(waitHandles[index]);
-                    waitHandles[index].Dispose();
+                    waitHandles[index].Close();
                 }
                 catch (Exception ex)
                 {
