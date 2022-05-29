@@ -15,9 +15,9 @@ namespace Memorandum.WinForms
         public ClickThroughForm()
             : base()
         {
-            this.AllowAltF4 = true;
-            this.ClickThrough = false;
-            this.ShowSystemMenu = true;
+            this.allowAltF4 = true;
+            this.clickThrough = false;
+            this.showSystemMenu = true;
         }
 
         public bool AllowAltF4
